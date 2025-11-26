@@ -203,7 +203,7 @@ def main(argv) -> None:
     print(f"> \tTook {time.time() - start} seconds.")
 
     # Run inference
-    match_threshold = 0.1  # Choose any value [0.0, 1.0)
+    match_threshold = 0.001  # Choose any value [0.0, 1.0)
     mmpp = 0.0581  # [mm/pixel]
     ransac_reproj_threshold = 5.0
     results = omniglue_inference(image0, image1, og, match_threshold, ransac_reproj_threshold, mmpp)
@@ -220,7 +220,7 @@ def main(argv) -> None:
         print(f"\n=== 姿勢変換パラメータ ===")
         print(f"回転角度: {results['rotation_deg']:.2f}°")
         print(f"スケール: X={results['scale_x']:.3f}, Y={results['scale_y']:.3f}")
-        print(f"並進成分: X={results['translation'][0]:.2f}px, Y={results['translation'][1]:.2f}px")
+        print(f"並進成分: X={results['translation'][0]:.2f}mm, Y={results['translation'][1]:.2f}mm")
         print(f"せん断角度: {np.degrees(results['shear']):.2f}°")
         
         # Save transformation parameters as JSON
@@ -235,9 +235,9 @@ def main(argv) -> None:
             "num_filtered_matches": int(results['num_filtered_matches']),
             "inlier_ratio": float(results['inlier_ratio'])
         }
-        with open(f"./resluts/pose_estimation/{connector_name}.pkl", "wb") as f:
+        with open(f"./results/pose_estimation/data.pkl", "wb") as f:
             pickle.dump(params_dict, f)
-        print("> \tSaved transformation parameters to ./omniglue_params.pkl")
+        print("> \tSaved transformation parameters to ./results/pose_estimation/data.pkl")
 
     # Visualize
     print("\n> Visualizing matches...")
