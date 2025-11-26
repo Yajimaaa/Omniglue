@@ -1,0 +1,13 @@
+matplotlib
+numpy
+opencv-python
+Pillow
+tensorflow
+torch
+gdown
+
+[dev]
+pytest
+pytest-xdist
+pylint>=2.6.0
+pyink

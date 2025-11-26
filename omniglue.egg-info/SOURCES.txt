@@ -1,0 +1,17 @@
+LICENSE
+README.md
+pyproject.toml
+requirements.txt
+omniglue.egg-info/PKG-INFO
+omniglue.egg-info/SOURCES.txt
+omniglue.egg-info/dependency_links.txt
+omniglue.egg-info/requires.txt
+omniglue.egg-info/top_level.txt
+src/omniglue/__init__.py
+src/omniglue/dino_extract.py
+src/omniglue/omniglue_extract.py
+src/omniglue/superpoint_extract.py
+src/omniglue/utils.py
+third_party/dinov2/__init__.py
+third_party/dinov2/dino.py
+third_party/dinov2/dino_utils.py
