@@ -179,19 +179,6 @@ def omniglue_inference(image0, image1, og_model, match_threshold=0.1, ransac_rep
 
 
 def main(argv) -> None:
-    if len(argv) != 3:
-        raise ValueError("Incorrect command line usage - usage: python demo.py <img1_fp> <img2_fp>")
-    image0_fp = argv[1]
-    image1_fp = argv[2]
-    for im_fp in [image0_fp, image1_fp]:
-        if not os.path.exists(im_fp) or not os.path.isfile(im_fp):
-            raise ValueError(f"Image filepath '{im_fp}' doesn't exist or is not a file.")
-
-    # Load images
-    print("> Loading images...")
-    image0 = np.array(Image.open(argv[1]).convert("RGB"))
-    image1 = np.array(Image.open(argv[2]).convert("RGB"))
-
     # Load models
     print("> Loading OmniGlue (and its submodules: SuperPoint & DINOv2)...")
     start = time.time()
@@ -201,62 +188,73 @@ def main(argv) -> None:
         dino_export="./models/dinov2_vitb14_pretrain.pth",
     )
     print(f"> \tTook {time.time() - start} seconds.")
-
-    # Run inference
+    
+        
+    # setup connector images and parameters for inference
+    peg_image_path = "data/Lightning_p_center.png"
+    peg_image = np.array(Image.open(peg_image_path).convert("RGB"))
+    hole_image_dir = "data/Lightning_h"
+    
     match_threshold = 0.001  # Choose any value [0.0, 1.0)
     mmpp = 0.0581  # [mm/pixel]
     ransac_reproj_threshold = 5.0
-    results = omniglue_inference(image0, image1, og, match_threshold, ransac_reproj_threshold, mmpp)
     
-    # Display and save results
-    if results['H'] is not None:
-        print("\nHomography Matrix (3x3):")
-        print(results['H'])
+    for hole_image_name in os.listdir(hole_image_dir):
+        hole_image_path = os.path.join(hole_image_dir, hole_image_name)
+        hole_image = np.array(Image.open(hole_image_path).convert("RGB"))
         
-        # Save homography matrix
-        np.savetxt("./homography_matrix.txt", results['H'], fmt='%.6f')
-        print("\n> \tSaved homography matrix to ./homography_matrix.txt")
+        # Run inference
+        results = omniglue_inference(peg_image, hole_image, og, match_threshold, ransac_reproj_threshold, mmpp)
         
-        print(f"\n=== 姿勢変換パラメータ ===")
-        print(f"回転角度: {results['rotation_deg']:.2f}°")
-        print(f"スケール: X={results['scale_x']:.3f}, Y={results['scale_y']:.3f}")
-        print(f"並進成分: X={results['translation'][0]:.2f}mm, Y={results['translation'][1]:.2f}mm")
-        print(f"せん断角度: {np.degrees(results['shear']):.2f}°")
-        
-        # Save transformation parameters as JSON
-        params_dict = {
-            "rotation_deg": float(results['rotation_deg']),
-            "scale_x": float(results['scale_x']),
-            "scale_y": float(results['scale_y']),
-            "translation_x_mm": float(results['translation'][0]),
-            "translation_y_mm": float(results['translation'][1]),
-            "shear_deg": float(np.degrees(results['shear'])),
-            "inliers": int(results['inliers']),
-            "num_filtered_matches": int(results['num_filtered_matches']),
-            "inlier_ratio": float(results['inlier_ratio'])
-        }
-        with open(f"./results/pose_estimation/data.pkl", "wb") as f:
-            pickle.dump(params_dict, f)
-        print("> \tSaved transformation parameters to ./results/pose_estimation/data.pkl")
+        # Display and save results
+        if results['H'] is not None:
+            print("\nHomography Matrix (3x3):")
+            print(results['H'])
+            
+            # Save homography matrix
+            np.savetxt("./homography_matrix.txt", results['H'], fmt='%.6f')
+            print("\n> \tSaved homography matrix to ./homography_matrix.txt")
+            
+            print(f"\n=== 姿勢変換パラメータ ===")
+            print(f"回転角度: {results['rotation_deg']:.2f}°")
+            print(f"スケール: X={results['scale_x']:.3f}, Y={results['scale_y']:.3f}")
+            print(f"並進成分: X={results['translation'][0]:.2f}mm, Y={results['translation'][1]:.2f}mm")
+            print(f"せん断角度: {np.degrees(results['shear']):.2f}°")
+            
+            # Save transformation parameters as JSON
+            params_dict = {
+                "rotation_deg": float(results['rotation_deg']),
+                "scale_x": float(results['scale_x']),
+                "scale_y": float(results['scale_y']),
+                "translation_x_mm": float(results['translation'][0]),
+                "translation_y_mm": float(results['translation'][1]),
+                "shear_deg": float(np.degrees(results['shear'])),
+                "inliers": int(results['inliers']),
+                "num_filtered_matches": int(results['num_filtered_matches']),
+                "inlier_ratio": float(results['inlier_ratio'])
+            }
+            with open(f"./results/pose_estimation/data.pkl", "wb") as f:
+                pickle.dump(params_dict, f)
+            print("> \tSaved transformation parameters to ./results/pose_estimation/data.pkl")
 
-    # Visualize
-    print("\n> Visualizing matches...")
-    viz = utils.visualize_matches(
-        image0,
-        image1,
-        results['match_kp0'],
-        results['match_kp1'],
-        np.eye(results['num_filtered_matches']),
-        show_keypoints=True,
-        highlight_unmatched=True,
-        title=f"{results['num_filtered_matches']} matches",
-        line_width=2,
-    )
-    plt.figure(figsize=(20, 10), dpi=100, facecolor="w", edgecolor="k")
-    plt.axis("off")
-    plt.imshow(viz)
-    plt.imsave("./demo_output.png", viz)
-    print("> \tSaved visualization to ./demo_output.png")
+        # Visualize
+        print("\n> Visualizing matches...")
+        viz = utils.visualize_matches(
+            peg_image,
+            hole_image,
+            results['match_kp0'],
+            results['match_kp1'],
+            np.eye(results['num_filtered_matches']),
+            show_keypoints=True,
+            highlight_unmatched=True,
+            title=f"{results['num_filtered_matches']} matches",
+            line_width=2,
+        )
+        plt.figure(figsize=(20, 10), dpi=100, facecolor="w", edgecolor="k")
+        plt.axis("off")
+        plt.imshow(viz)
+        plt.imsave("./demo_output.png", viz)
+        print("> \tSaved visualization to ./demo_output.png")
 
 
 if __name__ == "__main__":
